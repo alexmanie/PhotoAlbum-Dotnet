@@ -33,4 +33,11 @@ public interface IPhotoService
     /// <param name="id">Photo ID</param>
     /// <returns>True if deleted successfully, false if not found</returns>
     Task<bool> DeletePhotoAsync(int id);
+
+    /// <summary>
+    /// Update photo details
+    /// </summary>
+    /// <param name="photo">Photo object with updated details</param>
+    /// <returns>True if updated successfully, false if not found</returns>
+    Task<bool> UpdatePhotoAsync(Photo photo);
 }

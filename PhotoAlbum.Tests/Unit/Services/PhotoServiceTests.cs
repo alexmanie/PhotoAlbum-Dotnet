@@ -210,6 +210,132 @@ public class PhotoServiceTests : IDisposable
         Assert.False(File.Exists(fullPath));
     }
 
+    [Fact]
+    public async Task UpdatePhotoAsync_WithExistingPhoto_UpdatesDimensions()
+    {
+        // Arrange
+        var existingPhoto = new Photo
+        {
+            OriginalFileName = "original.jpg",
+            StoredFileName = "stored.jpg",
+            FilePath = "/uploads/stored.jpg",
+            FileSize = 1024,
+            MimeType = "image/jpeg",
+            UploadedAt = DateTime.UtcNow,
+            Width = 640,
+            Height = 480
+        };
+        await _context.Photos.AddAsync(existingPhoto);
+        await _context.SaveChangesAsync();
+
+        var updatedPhoto = new Photo
+        {
+            Id = existingPhoto.Id,
+            Width = 1920,
+            Height = 1080
+        };
+
+        // Act
+        var result = await _photoService.UpdatePhotoAsync(updatedPhoto);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(1920, existingPhoto.Width);
+        Assert.Equal(1080, existingPhoto.Height);
+    }
+
+    [Fact]
+    public async Task UpdatePhotoAsync_WithUnknownId_ReturnsFalse()
+    {
+        // Arrange
+        var photo = new Photo { Id = 999, Width = 100, Height = 100 };
+
+        // Act
+        var result = await _photoService.UpdatePhotoAsync(photo);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task UpdatePhotoAsync_DoesNotChangeFileOrUploadMetadata()
+    {
+        // Arrange
+        var uploadedAt = DateTime.UtcNow.AddDays(-1);
+        var existingPhoto = new Photo
+        {
+            OriginalFileName = "original.jpg",
+            StoredFileName = "stored.jpg",
+            FilePath = "/uploads/stored.jpg",
+            FileSize = 1024,
+            MimeType = "image/jpeg",
+            UploadedAt = uploadedAt
+        };
+        await _context.Photos.AddAsync(existingPhoto);
+        await _context.SaveChangesAsync();
+
+        var updatedPhoto = new Photo
+        {
+            Id = existingPhoto.Id,
+            OriginalFileName = "changed.png",
+            StoredFileName = "changed.png",
+            FilePath = "/uploads/changed.png",
+            FileSize = 2048,
+            MimeType = "image/png",
+            UploadedAt = DateTime.UtcNow,
+            Width = 800,
+            Height = 600
+        };
+
+        // Act
+        var result = await _photoService.UpdatePhotoAsync(updatedPhoto);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal("original.jpg", existingPhoto.OriginalFileName);
+        Assert.Equal("stored.jpg", existingPhoto.StoredFileName);
+        Assert.Equal("/uploads/stored.jpg", existingPhoto.FilePath);
+        Assert.Equal(1024, existingPhoto.FileSize);
+        Assert.Equal("image/jpeg", existingPhoto.MimeType);
+        Assert.Equal(uploadedAt, existingPhoto.UploadedAt);
+        Assert.Equal(800, existingPhoto.Width);
+        Assert.Equal(600, existingPhoto.Height);
+    }
+
+    [Fact]
+    public async Task UpdatePhotoAsync_WithNullDimensions_ClearsExistingDimensions()
+    {
+        // Arrange
+        var existingPhoto = new Photo
+        {
+            OriginalFileName = "photo.jpg",
+            StoredFileName = "stored.jpg",
+            FilePath = "/uploads/stored.jpg",
+            FileSize = 1024,
+            MimeType = "image/jpeg",
+            UploadedAt = DateTime.UtcNow,
+            Width = 640,
+            Height = 480
+        };
+        await _context.Photos.AddAsync(existingPhoto);
+        await _context.SaveChangesAsync();
+
+        var updatedPhoto = new Photo
+        {
+            Id = existingPhoto.Id,
+            Width = null,
+            Height = null
+        };
+
+        // Act
+        var result = await _photoService.UpdatePhotoAsync(updatedPhoto);
+
+        // Assert
+        Assert.True(result);
+        Assert.Null(existingPhoto.Width);
+        Assert.Null(existingPhoto.Height);
+    }
+
     private IFormFile CreateMockFormFile(string fileName, string contentType, long size)
     {
         var content = new byte[size];

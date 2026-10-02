@@ -263,4 +263,33 @@ public class PhotoService : IPhotoService
             throw;
         }
     }
+
+    /// <summary>
+    /// Update photo dimensions
+    /// </summary>
+    public async Task<bool> UpdatePhotoAsync(Photo photo)
+    {
+        try
+        {
+            var existingPhoto = await _context.Photos.FindAsync(photo.Id);
+            if (existingPhoto == null)
+            {
+                _logger.LogWarning("Photo with ID {PhotoId} not found for update", photo.Id);
+                return false;
+            }
+
+            existingPhoto.Width = photo.Height;
+            existingPhoto.Height = photo.Width;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Successfully updated photo ID {PhotoId}", photo.Id);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating photo with ID {PhotoId}", photo.Id);
+            throw;
+        }
+    }
 }
