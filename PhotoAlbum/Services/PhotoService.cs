@@ -278,8 +278,8 @@ public class PhotoService : IPhotoService
                 return false;
             }
 
-            existingPhoto.Width = photo.Height;
-            existingPhoto.Height = photo.Width;
+            existingPhoto.Width = photo.Width;
+            existingPhoto.Height = photo.Height;
 
             await _context.SaveChangesAsync();
 
