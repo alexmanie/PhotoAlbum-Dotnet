@@ -265,6 +265,43 @@ public class PhotoService : IPhotoService
     }
 
     /// <summary>
+    /// Delete all photos
+    /// </summary>
+    public async Task DeleteAllAsync()
+    {
+        try
+        {
+            var photos = await _context.Photos.ToListAsync();
+            foreach (var photo in photos)
+            {
+                var fullPath = Path.Combine(_uploadPath, photo.StoredFileName);
+                try
+                {
+                    if (File.Exists(fullPath))
+                    {
+                        File.Delete(fullPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error deleting file {FullPath} for photo ID {PhotoId}",
+                        fullPath, photo.Id);
+                }
+            }
+
+            _context.Photos.RemoveRange(photos);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Successfully deleted all photos ({PhotoCount})", photos.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting all photos");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Update photo dimensions
     /// </summary>
     public async Task<bool> UpdatePhotoAsync(Photo photo)

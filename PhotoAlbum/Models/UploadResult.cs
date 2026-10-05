@@ -1,27 +1,27 @@
 namespace PhotoAlbum.Models;
 
 /// <summary>
-/// Transfer object for upload operation results
+/// Describes the outcome of an attempted photo upload.
 /// </summary>
 public class UploadResult
 {
     /// <summary>
-    /// Indicates if upload succeeded
+    /// Gets or sets a value indicating whether the photo was stored and its metadata was persisted.
     /// </summary>
     public bool Success { get; set; }
 
     /// <summary>
-    /// ID of created Photo entity (null on failure)
+    /// Gets or sets the identifier of the persisted <see cref="Photo"/>, or <see langword="null"/> when the upload fails.
     /// </summary>
     public int? PhotoId { get; set; }
 
     /// <summary>
-    /// Original filename
+    /// Gets or sets the file name supplied with the upload request.
     /// </summary>
     public string FileName { get; set; } = string.Empty;
 
     /// <summary>
-    /// User-friendly error message (null on success)
+    /// Gets or sets the user-facing failure message, or <see langword="null"/> when the upload succeeds.
     /// </summary>
     public string? ErrorMessage { get; set; }
 }

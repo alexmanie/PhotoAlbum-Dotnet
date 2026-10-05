@@ -211,6 +211,28 @@ public class PhotoServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteAllAsync_RemovesAllFilesAndDatabaseRecords()
+    {
+        // Arrange
+        var firstUpload = await _photoService.UploadPhotoAsync(CreateImageFormFile("first.jpg", "image/jpeg"));
+        var secondUpload = await _photoService.UploadPhotoAsync(CreateImageFormFile("second.jpg", "image/jpeg"));
+        Assert.True(firstUpload.Success);
+        Assert.True(secondUpload.Success);
+
+        var photos = await _context.Photos.ToListAsync();
+        var photoPaths = photos
+            .Select(photo => Path.Combine(_tempUploadPath, photo.StoredFileName))
+            .ToList();
+
+        // Act
+        await _photoService.DeleteAllAsync();
+
+        // Assert
+        Assert.Empty(await _context.Photos.ToListAsync());
+        Assert.All(photoPaths, path => Assert.False(File.Exists(path)));
+    }
+
+    [Fact]
     public async Task UpdatePhotoAsync_WithExistingPhoto_UpdatesDimensions()
     {
         // Arrange

@@ -35,6 +35,11 @@ public interface IPhotoService
     Task<bool> DeletePhotoAsync(int id);
 
     /// <summary>
+    /// Delete all photos
+    /// </summary>
+    Task DeleteAllAsync();
+
+    /// <summary>
     /// Update photo details
     /// </summary>
     /// <param name="photo">Photo object with updated details</param>
