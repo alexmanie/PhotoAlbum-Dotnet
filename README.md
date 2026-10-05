@@ -12,7 +12,7 @@ PhotoAlbum provides a simple photo management system, allowing users to:
 - View uploaded photos in a responsive gallery grid
 - View full-size photos with detailed metadata (dimensions, file size, aspect ratio)
 - Navigate between photos using Previous/Next controls
-- Delete photos from the gallery
+- Delete individual photos from the gallery; the photo service also supports deleting all photo records and attempts to remove their uploaded files
 - Store photo metadata in SQL Server LocalDB
 
 ## 📋 Prerequisites
