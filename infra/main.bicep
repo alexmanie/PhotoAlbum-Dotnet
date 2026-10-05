@@ -13,6 +13,15 @@ param location string = resourceGroup().location
 @description('Container image name for the web service (set by azd deploy)')
 param webImageName string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
+@minLength(1)
+@description('SQL Server administrator login supplied through the azd environment')
+param sqlAdminUser string
+
+@secure()
+@minLength(12)
+@description('SQL Server administrator password supplied through the azd environment')
+param sqlAdminPassword string
+
 // Generate unique resource names
 var resourceToken = toLower(uniqueString(resourceGroup().id, environmentName, location))
 var tags = {
@@ -55,8 +64,6 @@ module containerRegistry 'br/public:avm/res/container-registry/registry:0.6.0' =
 
 // === SQL Server and Database ===
 var sqlServerName = 'sql-${environmentName}-${resourceToken}'
-var sqlAdminUser = 'sqladmin'
-var sqlAdminPassword = 'P@ssw0rd${uniqueString(resourceGroup().id, environmentName)}'
 var sqlDatabaseName = 'PhotoAlbumDb'
 
 module sqlServer 'br/public:avm/res/sql/server:0.9.1' = {

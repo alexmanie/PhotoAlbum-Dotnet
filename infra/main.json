@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.38.3.11034",
-      "templateHash": "5804375931776227180"
+      "version": "0.47.16.16243",
+      "templateHash": "5937226985706863059"
     },
     "description": "Provisions Azure resources for PhotoAlbum web application with Container Apps, SQL Database, and Blob Storage."
   },
@@ -31,6 +31,20 @@
       "metadata": {
         "description": "Container image name for the web service (set by azd deploy)"
       }
+    },
+    "sqlAdminUser": {
+      "type": "string",
+      "minLength": 1,
+      "metadata": {
+        "description": "SQL Server administrator login supplied through the azd environment"
+      }
+    },
+    "sqlAdminPassword": {
+      "type": "securestring",
+      "minLength": 12,
+      "metadata": {
+        "description": "SQL Server administrator password supplied through the azd environment"
+      }
     }
   },
   "variables": {
@@ -39,8 +53,6 @@
       "azd-env-name": "[parameters('environmentName')]"
     },
     "sqlServerName": "[format('sql-{0}-{1}', parameters('environmentName'), variables('resourceToken'))]",
-    "sqlAdminUser": "sqladmin",
-    "sqlAdminPassword": "[format('P@ssw0rd{0}', uniqueString(resourceGroup().id, parameters('environmentName')))]",
     "sqlDatabaseName": "PhotoAlbumDb",
     "sqlServerFqdn": "[format('{0}{1}', variables('sqlServerName'), environment().suffixes.sqlServerHostname)]",
     "sqlConnectionString": "[format('Server=tcp:{0},1433;Initial Catalog={1};Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;', variables('sqlServerFqdn'), variables('sqlDatabaseName'))]"
@@ -6326,10 +6338,10 @@
             "value": "[parameters('location')]"
           },
           "administratorLogin": {
-            "value": "[variables('sqlAdminUser')]"
+            "value": "[parameters('sqlAdminUser')]"
           },
           "administratorLoginPassword": {
-            "value": "[variables('sqlAdminPassword')]"
+            "value": "[parameters('sqlAdminPassword')]"
           },
           "tags": {
             "value": "[variables('tags')]"

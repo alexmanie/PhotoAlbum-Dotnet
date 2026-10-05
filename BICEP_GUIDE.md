@@ -75,7 +75,13 @@ azd env new <environment-name>
 
 # Set location
 azd env set AZURE_LOCATION westus2
+
+# Set a non-default SQL administrator login and a strong, unique password
+azd env set AZURE_SQL_ADMIN_USER <sql-admin-user>
+azd env set AZURE_SQL_ADMIN_PASSWORD <strong-unique-password>
 ```
+
+The SQL administrator password is a secure Bicep parameter and must not be committed to source control. Use a unique password that is at least 12 characters long and meets Azure SQL password complexity requirements.
 
 ### Deploy Infrastructure
 

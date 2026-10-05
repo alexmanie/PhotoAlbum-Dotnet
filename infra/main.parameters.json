@@ -10,6 +10,12 @@
     },
     "webImageName": {
       "value": "${SERVICE_WEB_IMAGE_NAME=mcr.microsoft.com/azuredocs/containerapps-helloworld:latest}"
+    },
+    "sqlAdminUser": {
+      "value": "${AZURE_SQL_ADMIN_USER}"
+    },
+    "sqlAdminPassword": {
+      "value": "${AZURE_SQL_ADMIN_PASSWORD}"
     }
   }
 }
