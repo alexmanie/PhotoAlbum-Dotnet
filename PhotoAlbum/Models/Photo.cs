@@ -62,4 +62,9 @@ public class Photo
     /// Gets or sets the decoded image height, in pixels, or <see langword="null"/> when unavailable.
     /// </summary>
     public int? Height { get; set; }
+
+    /// <summary>
+    /// Gets or sets the album identifier used to group the photo, or <see langword="null"/> when the photo is unassigned.
+    /// </summary>
+    public int? AlbumId { get; set; }
 }

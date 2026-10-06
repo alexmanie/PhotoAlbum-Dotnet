@@ -11,6 +11,9 @@ using System.Text;
 
 namespace PhotoAlbum.Tests.Unit.Services;
 
+/// <summary>
+/// Verifies photo storage, retrieval, update, and deletion behavior against isolated storage.
+/// </summary>
 public class PhotoServiceTests : IDisposable
 {
     private readonly PhotoAlbumContext _context;
@@ -19,6 +22,9 @@ public class PhotoServiceTests : IDisposable
     private readonly IConfiguration _configuration;
     private readonly ILogger<PhotoService> _logger;
 
+    /// <summary>
+    /// Initializes an isolated in-memory database and temporary upload directory for a test.
+    /// </summary>
     public PhotoServiceTests()
     {
         // Setup in-memory database
@@ -52,6 +58,7 @@ public class PhotoServiceTests : IDisposable
         _photoService = new PhotoService(_context, _configuration, _logger);
     }
 
+    /// <summary>Verifies that a valid image is stored successfully.</summary>
     [Fact]
     public async Task UploadPhotoAsync_WithValidImage_ReturnsSuccess()
     {
@@ -75,6 +82,7 @@ public class PhotoServiceTests : IDisposable
         Assert.True(photo.FileSize > 0);
     }
 
+    /// <summary>Verifies that content which cannot be decoded as an image is rejected.</summary>
     [Fact]
     public async Task UploadPhotoAsync_WithInvalidMimeType_ReturnsError()
     {
@@ -90,6 +98,7 @@ public class PhotoServiceTests : IDisposable
         Assert.Contains("not supported", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Verifies that a file exceeding the configured size limit is rejected.</summary>
     [Fact]
     public async Task UploadPhotoAsync_WithOversizedFile_ReturnsError()
     {
@@ -105,6 +114,7 @@ public class PhotoServiceTests : IDisposable
         Assert.Contains("exceeds", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Verifies that a successful upload creates a physical file.</summary>
     [Fact]
     public async Task UploadPhotoAsync_CreatesFileInUploadsDirectory()
     {
@@ -124,6 +134,7 @@ public class PhotoServiceTests : IDisposable
         Assert.True(File.Exists(fullPath));
     }
 
+    /// <summary>Verifies that a successful upload persists its metadata.</summary>
     [Fact]
     public async Task UploadPhotoAsync_SavesMetadataToDatabase()
     {
@@ -145,6 +156,41 @@ public class PhotoServiceTests : IDisposable
         Assert.True(photo.UploadedAt > DateTime.UtcNow.AddMinutes(-1));
     }
 
+    /// <summary>Verifies that an upload can be assigned to an album.</summary>
+    [Fact]
+    public async Task UploadPhotoAsync_WithAlbumId_SavesAlbumId()
+    {
+        // Arrange
+        var file = CreateImageFormFile("album.jpg", "image/jpeg");
+
+        // Act
+        var result = await _photoService.UploadPhotoAsync(file, 7);
+
+        // Assert
+        Assert.True(result.Success);
+        var photo = await _context.Photos.FindAsync(result.PhotoId);
+        Assert.NotNull(photo);
+        Assert.Equal(7, photo.AlbumId);
+    }
+
+    /// <summary>Verifies that an upload without an album remains unassigned.</summary>
+    [Fact]
+    public async Task UploadPhotoAsync_WithoutAlbumId_LeavesPhotoUnassigned()
+    {
+        // Arrange
+        var file = CreateImageFormFile("unassigned.jpg", "image/jpeg");
+
+        // Act
+        var result = await _photoService.UploadPhotoAsync(file);
+
+        // Assert
+        Assert.True(result.Success);
+        var photo = await _context.Photos.FindAsync(result.PhotoId);
+        Assert.NotNull(photo);
+        Assert.Null(photo.AlbumId);
+    }
+
+    /// <summary>Verifies that all photos are returned in newest-first order.</summary>
     [Fact]
     public async Task GetAllPhotosAsync_ReturnsPhotosOrderedByDate()
     {
@@ -190,6 +236,7 @@ public class PhotoServiceTests : IDisposable
         Assert.Equal("first.jpg", photos[2].OriginalFileName);
     }
 
+    /// <summary>Verifies that deleting a photo removes both its file and metadata.</summary>
     [Fact]
     public async Task DeletePhotoAsync_RemovesFileAndDatabaseRecord()
     {
@@ -210,6 +257,7 @@ public class PhotoServiceTests : IDisposable
         Assert.False(File.Exists(fullPath));
     }
 
+    /// <summary>Verifies that deleting all photos removes every file and metadata record.</summary>
     [Fact]
     public async Task DeleteAllAsync_RemovesAllFilesAndDatabaseRecords()
     {
@@ -232,6 +280,7 @@ public class PhotoServiceTests : IDisposable
         Assert.All(photoPaths, path => Assert.False(File.Exists(path)));
     }
 
+    /// <summary>Verifies that updating an existing photo replaces its dimensions.</summary>
     [Fact]
     public async Task UpdatePhotoAsync_WithExistingPhoto_UpdatesDimensions()
     {
@@ -266,6 +315,7 @@ public class PhotoServiceTests : IDisposable
         Assert.Equal(1080, existingPhoto.Height);
     }
 
+    /// <summary>Verifies that updating an unknown photo reports no match.</summary>
     [Fact]
     public async Task UpdatePhotoAsync_WithUnknownId_ReturnsFalse()
     {
@@ -279,6 +329,7 @@ public class PhotoServiceTests : IDisposable
         Assert.False(result);
     }
 
+    /// <summary>Verifies that a dimension update preserves file and upload metadata.</summary>
     [Fact]
     public async Task UpdatePhotoAsync_DoesNotChangeFileOrUploadMetadata()
     {
@@ -324,6 +375,7 @@ public class PhotoServiceTests : IDisposable
         Assert.Equal(600, existingPhoto.Height);
     }
 
+    /// <summary>Verifies that null replacement dimensions clear existing dimensions.</summary>
     [Fact]
     public async Task UpdatePhotoAsync_WithNullDimensions_ClearsExistingDimensions()
     {
@@ -358,6 +410,58 @@ public class PhotoServiceTests : IDisposable
         Assert.Null(existingPhoto.Height);
     }
 
+    /// <summary>Verifies album filtering and newest-first ordering.</summary>
+    [Fact]
+    public async Task GetPhotosByAlbumIdAsync_ReturnsOnlyAlbumPhotosNewestFirst()
+    {
+        // Arrange
+        var now = DateTime.UtcNow;
+        await _context.Photos.AddRangeAsync(
+            CreatePhoto("album1-older.jpg", now.AddHours(-2), albumId: 1),
+            CreatePhoto("album2.jpg", now.AddHours(-1), albumId: 2),
+            CreatePhoto("unassigned.jpg", now.AddMinutes(-30), albumId: null),
+            CreatePhoto("album1-newer.jpg", now, albumId: 1));
+        await _context.SaveChangesAsync();
+
+        // Act
+        var photos = await _photoService.GetPhotosByAlbumIdAsync(1);
+
+        // Assert
+        Assert.Equal(new[] { "album1-newer.jpg", "album1-older.jpg" }, photos.Select(p => p.OriginalFileName));
+    }
+
+    /// <summary>Verifies that an album with no matching photos produces an empty list.</summary>
+    [Fact]
+    public async Task GetPhotosByAlbumIdAsync_WithNoMatchingPhotos_ReturnsEmptyList()
+    {
+        // Arrange
+        await _context.Photos.AddRangeAsync(
+            CreatePhoto("album1.jpg", DateTime.UtcNow, albumId: 1),
+            CreatePhoto("unassigned.jpg", DateTime.UtcNow, albumId: null));
+        await _context.SaveChangesAsync();
+
+        // Act
+        var photos = await _photoService.GetPhotosByAlbumIdAsync(99);
+
+        // Assert
+        Assert.Empty(photos);
+    }
+
+    private static Photo CreatePhoto(string fileName, DateTime uploadedAt, int? albumId)
+    {
+        var storedFileName = $"{Guid.NewGuid()}.jpg";
+        return new Photo
+        {
+            OriginalFileName = fileName,
+            StoredFileName = storedFileName,
+            FilePath = $"/uploads/{storedFileName}",
+            FileSize = 1024,
+            MimeType = "image/jpeg",
+            UploadedAt = uploadedAt,
+            AlbumId = albumId
+        };
+    }
+
     private IFormFile CreateMockFormFile(string fileName, string contentType, long size)
     {
         var content = new byte[size];
@@ -389,6 +493,9 @@ public class PhotoServiceTests : IDisposable
         };
     }
 
+    /// <summary>
+    /// Releases the database context and deletes the temporary upload directory.
+    /// </summary>
     public void Dispose()
     {
         _context.Dispose();

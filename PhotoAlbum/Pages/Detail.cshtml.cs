@@ -6,7 +6,7 @@ using PhotoAlbum.Models;
 namespace PhotoAlbum.Pages;
 
 /// <summary>
-/// Page model for displaying a single photo in full size
+/// Displays one photo and provides scoped navigation and authenticated deletion.
 /// </summary>
 public class DetailModel : PageModel
 {
@@ -14,10 +14,10 @@ public class DetailModel : PageModel
     private readonly ILogger<DetailModel> _logger;
 
     /// <summary>
-    /// Initializes a new instance of the DetailModel class
+    /// Initializes a photo detail page model.
     /// </summary>
-    /// <param name="photoService">Service for photo operations</param>
-    /// <param name="logger">Logger instance</param>
+    /// <param name="photoService">The service used to retrieve and delete photos.</param>
+    /// <param name="logger">The logger used for operational diagnostics.</param>
     public DetailModel(IPhotoService photoService, ILogger<DetailModel> logger)
     {
         _photoService = photoService;
@@ -25,44 +25,59 @@ public class DetailModel : PageModel
     }
 
     /// <summary>
-    /// Gets or sets the photo to display
+    /// Gets or sets the photo displayed by the page.
     /// </summary>
     public Photo? Photo { get; set; }
 
     /// <summary>
-    /// Gets or sets the previous photo ID for navigation
+    /// Gets or sets the identifier of the next older photo, or <see langword="null"/> at the end of the scope.
     /// </summary>
     public int? PreviousPhotoId { get; set; }
 
     /// <summary>
-    /// Gets or sets the next photo ID for navigation
+    /// Gets or sets the identifier of the next newer photo, or <see langword="null"/> at the start of the scope.
     /// </summary>
     public int? NextPhotoId { get; set; }
 
     /// <summary>
-    /// Handles GET requests to display a photo
+    /// Gets the album identifier that limits navigation, or <see langword="null"/> when navigating all photos.
     /// </summary>
-    /// <param name="id">The ID of the photo to display</param>
-    /// <returns>The page result or NotFound if photo doesn't exist</returns>
-    public async Task<IActionResult> OnGetAsync(int? id)
+    public int? AlbumId { get; private set; }
+
+    /// <summary>
+    /// Loads a photo and computes its older and newer neighbors within the requested scope.
+    /// </summary>
+    /// <param name="id">The identifier of the photo to display.</param>
+    /// <param name="albumId">The optional positive album identifier that limits lookup and navigation.</param>
+    /// <returns>The page, status 404 when the photo is absent from the scope, or status 400 for an invalid album identifier.</returns>
+    public async Task<IActionResult> OnGetAsync(int? id, int? albumId = null)
     {
         if (id == null)
         {
             return NotFound();
         }
 
+        if (!ModelState.IsValid || albumId <= 0)
+        {
+            return BadRequest();
+        }
+
         try
         {
-            var allPhotos = await _photoService.GetAllPhotosAsync();
-            Photo = allPhotos.FirstOrDefault(p => p.Id == id);
+            var photos = albumId.HasValue
+                ? await _photoService.GetPhotosByAlbumIdAsync(albumId.Value)
+                : await _photoService.GetAllPhotosAsync();
+            Photo = photos.FirstOrDefault(p => p.Id == id);
 
             if (Photo == null)
             {
                 return NotFound();
             }
 
+            AlbumId = albumId;
+
             // Find previous and next photos for navigation
-            var photoList = allPhotos.ToList();
+            var photoList = photos.ToList();
             var currentIndex = photoList.FindIndex(p => p.Id == id);
 
             if (currentIndex > 0)
@@ -85,11 +100,12 @@ public class DetailModel : PageModel
     }
 
     /// <summary>
-    /// Handles POST requests to delete a photo
+    /// Deletes a photo for an authenticated caller.
     /// </summary>
-    /// <param name="id">The ID of the photo to delete</param>
-    /// <returns>Redirect to index page</returns>
-    public async Task<IActionResult> OnPostDeleteAsync(int id)
+    /// <param name="id">The identifier of the photo to delete.</param>
+    /// <param name="albumId">The optional album identifier preserved in the redirect.</param>
+    /// <returns>A challenge for anonymous callers, a gallery redirect on success, or a detail redirect when deletion throws.</returns>
+    public async Task<IActionResult> OnPostDeleteAsync(int id, int? albumId = null)
     {
         // Deleting a photo is a destructive operation and requires authentication
         // (CWE-306). Anonymous callers are redirected to the login page.
@@ -102,13 +118,13 @@ public class DetailModel : PageModel
         {
             await _photoService.DeletePhotoAsync(id);
             _logger.LogInformation("Photo {PhotoId} deleted successfully", id);
-            return RedirectToPage("/Index");
+            return RedirectToPage("/Index", new { albumId });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting photo {PhotoId}", id);
             TempData["Error"] = "Failed to delete photo. Please try again.";
-            return RedirectToPage("/Detail", new { id });
+            return RedirectToPage("/Detail", new { id, albumId });
         }
     }
 }

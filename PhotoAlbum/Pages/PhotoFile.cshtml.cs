@@ -5,7 +5,7 @@ using PhotoAlbum.Services;
 namespace PhotoAlbum.Pages;
 
 /// <summary>
-/// Page model for serving photo files with indirect access
+/// Resolves persisted photo metadata to physical image files for indirect access.
 /// </summary>
 public class PhotoFileModel : PageModel
 {
@@ -15,11 +15,11 @@ public class PhotoFileModel : PageModel
     private readonly string _uploadPath;
 
     /// <summary>
-    /// Initializes a new instance of the PhotoFileModel class
+    /// Initializes a photo file page model.
     /// </summary>
-    /// <param name="photoService">Service for photo operations</param>
-    /// <param name="configuration">Configuration instance</param>
-    /// <param name="logger">Logger instance</param>
+    /// <param name="photoService">The service used to resolve photo metadata.</param>
+    /// <param name="configuration">Configuration containing the physical upload path.</param>
+    /// <param name="logger">The logger used for operational diagnostics.</param>
     public PhotoFileModel(IPhotoService photoService, IConfiguration configuration, ILogger<PhotoFileModel> logger)
     {
         _photoService = photoService;
@@ -30,10 +30,10 @@ public class PhotoFileModel : PageModel
     }
 
     /// <summary>
-    /// Serves a photo file by ID
+    /// Serves a photo file with its detected MIME type and long-lived cache headers.
     /// </summary>
-    /// <param name="id">The ID of the photo to serve</param>
-    /// <returns>File result with the photo, or NotFound if photo doesn't exist</returns>
+    /// <param name="id">The identifier of the photo to serve.</param>
+    /// <returns>The image file, status 404 when metadata or content is absent, or status 500 when retrieval fails unexpectedly.</returns>
     public async Task<IActionResult> OnGetAsync(int? id)
     {
         if (id == null)

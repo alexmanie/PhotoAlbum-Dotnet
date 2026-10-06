@@ -8,12 +8,14 @@ app prepared for Azure deployment.
 PhotoAlbum is an ASP.NET Core Razor Pages application designed to manage and display photo galleries. The application allows users to upload photos, store them locally, and view them in a responsive gallery interface with detailed metadata.
 
 PhotoAlbum provides a simple photo management system, allowing users to:
-- Upload photos via drag-and-drop or file selection
-- View uploaded photos in a responsive gallery grid
-- View full-size photos with detailed metadata (dimensions, file size, aspect ratio)
-- Navigate between photos using Previous/Next controls
+- Upload photos via drag-and-drop or file selection, optionally assigning every photo in the upload to an album ID
+- View uploaded photos in a responsive gallery grid, or filter the gallery by album ID
+- View full-size photos with detailed metadata (album, dimensions, file size, aspect ratio)
+- Navigate between photos using Previous/Next controls; when the gallery is filtered, navigation stays within that album
 - Delete individual photos from the gallery; the photo service also supports deleting all photo records and attempts to remove their uploaded files
 - Store photo metadata in SQL Server LocalDB
+
+Album IDs are whole numbers from 1 to 2147483647 that group photos; there is no separate list of albums to create or manage. A filtered gallery has a bookmarkable URL such as `/?albumId=7`, and an album ID with no photos shows an empty album. Photos uploaded without an album ID, including photos stored before album support was added, remain unassigned and appear only in the unfiltered gallery. The `AddAlbumIdToPhotos` EF Core migration adds the nullable `AlbumId` column and is applied automatically when the app starts.
 
 ## 📋 Prerequisites
 

@@ -92,4 +92,7 @@ app.MapRazorPages()
 app.Run();
 
 // Make the implicit Program class public for testing
+/// <summary>
+/// Provides the application entry point type exposed for integration-test hosting.
+/// </summary>
 public partial class Program { }

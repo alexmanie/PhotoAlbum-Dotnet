@@ -4,20 +4,25 @@ using PhotoAlbum.Models;
 namespace PhotoAlbum.Data;
 
 /// <summary>
-/// Database context for the Photo Album application
+/// Provides database access to persisted photo metadata.
 /// </summary>
 public class PhotoAlbumContext : DbContext
 {
+    /// <summary>
+    /// Initializes a new context with the specified database options.
+    /// </summary>
+    /// <param name="options">The options that configure the database provider and connection.</param>
     public PhotoAlbumContext(DbContextOptions<PhotoAlbumContext> options)
         : base(options)
     {
     }
 
     /// <summary>
-    /// Photos collection
+    /// Gets or sets the photos tracked by the context.
     /// </summary>
     public DbSet<Photo> Photos { get; set; } = null!;
 
+    /// <inheritdoc/>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -32,6 +37,11 @@ public class PhotoAlbumContext : DbContext
             entity.HasIndex(p => p.UploadedAt)
                 .HasDatabaseName("IX_Photos_UploadedAt")
                 .IsDescending();
+
+            // Index on AlbumId and UploadedAt for album queries ordered newest first
+            entity.HasIndex(p => new { p.AlbumId, p.UploadedAt })
+                .HasDatabaseName("IX_Photos_AlbumId_UploadedAt")
+                .IsDescending(false, true);
 
             // Property configurations
             entity.Property(p => p.OriginalFileName)

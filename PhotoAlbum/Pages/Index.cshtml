@@ -15,6 +15,13 @@
         <h5 class="card-title">Upload Photos</h5>
         <form id="upload-form" method="post" enctype="multipart/form-data">
             @Html.AntiForgeryToken()
+            <div class="row mb-3">
+                <div class="col-sm-6 col-md-4">
+                    <label for="upload-album-id" class="form-label">Album ID <span class="text-muted small">(optional)</span></label>
+                    <input type="number" id="upload-album-id" class="form-control" min="1" max="2147483647" step="1" inputmode="numeric" aria-describedby="upload-album-help" />
+                    <div id="upload-album-help" class="form-text">Leave blank to upload without an album.</div>
+                </div>
+            </div>
             <div id="drop-zone" class="drop-zone mb-3">
                 <div class="drop-zone-content">
                     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-cloud-upload mb-3" viewBox="0 0 16 16">
@@ -43,16 +50,42 @@
     </div>
 </div>
 
+<!-- Album Filter -->
+<form method="get" asp-page="/Index" class="row g-2 align-items-end mb-4">
+    <div class="col-sm-6 col-md-4">
+        <label for="album-filter" class="form-label">Filter by album ID</label>
+        <input type="number" id="album-filter" name="albumId" value="@Model.AlbumId" class="form-control" min="1" max="2147483647" step="1" inputmode="numeric" required />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Apply</button>
+        @if (Model.AlbumId.HasValue || Model.AlbumIdError != null)
+        {
+            <a asp-page="/Index" class="btn btn-outline-secondary">Show all photos</a>
+        }
+    </div>
+</form>
+
 <!-- Gallery -->
-<div id="gallery-section">
-    @if (Model.Photos == null || !Model.Photos.Any())
+<div id="gallery-section" data-album-id="@Model.AlbumId">
+    @if (Model.AlbumIdError != null)
+    {
+        <div class="alert alert-danger" role="alert">@Model.AlbumIdError</div>
+    }
+    else if (Model.Photos == null || !Model.Photos.Any())
     {
         <div class="alert alert-info text-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-images mb-3" viewBox="0 0 16 16">
                 <path d="M4.502 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>
                 <path d="M14.002 13a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2V5A2 2 0 0 1 2 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-1.998 2zM14 2H4a1 1 0 0 0-1 1h9.002a2 2 0 0 1 2 2v7A1 1 0 0 0 15 11V3a1 1 0 0 0-1-1zM2.002 4a1 1 0 0 0-1 1v8l2.646-2.354a.5.5 0 0 1 .63-.062l2.66 1.773 3.71-3.71a.5.5 0 0 1 .577-.094l1.777 1.947V5a1 1 0 0 0-1-1h-10z"/>
             </svg>
-            <p class="mb-0">No photos yet. Upload your first photo to get started!</p>
+            @if (Model.AlbumId.HasValue)
+            {
+                <p class="mb-0">No photos in album @Model.AlbumId yet. Enter @Model.AlbumId as the album ID when uploading to add photos.</p>
+            }
+            else
+            {
+                <p class="mb-0">No photos yet. Upload your first photo to get started!</p>
+            }
         </div>
     }
     else
@@ -62,12 +95,12 @@
             {
                 <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
                     <div class="card photo-card h-100">
-                        <a asp-page="/Detail" asp-route-id="@photo.Id" class="photo-link">
+                        <a asp-page="/Detail" asp-route-id="@photo.Id" asp-route-albumId="@Model.AlbumId" class="photo-link">
                             <img src="@Url.Page("/PhotoFile", new { id = photo.Id })" class="card-img-top" alt="@photo.OriginalFileName" loading="lazy">
                         </a>
                         <div class="card-body">
                             <p class="card-text text-truncate" title="@photo.OriginalFileName">
-                                <small><a asp-page="/Detail" asp-route-id="@photo.Id" class="text-decoration-none text-dark">@photo.OriginalFileName</a></small>
+                                <small><a asp-page="/Detail" asp-route-id="@photo.Id" asp-route-albumId="@Model.AlbumId" class="text-decoration-none text-dark">@photo.OriginalFileName</a></small>
                             </p>
                             <p class="card-text">
                                 <small class="text-muted">

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PhotoAlbum.Data;
 
@@ -11,9 +12,11 @@ using PhotoAlbum.Data;
 namespace PhotoAlbum.Migrations
 {
     [DbContext(typeof(PhotoAlbumContext))]
-    partial class PhotoAlbumContextModelSnapshot : ModelSnapshot
+    [Migration("20261006105801_AddAlbumIdToPhotos")]
+    partial class AddAlbumIdToPhotos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

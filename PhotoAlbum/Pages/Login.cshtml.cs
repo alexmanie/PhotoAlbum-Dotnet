@@ -9,34 +9,56 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace PhotoAlbum.Pages;
 
 /// <summary>
-/// Minimal admin login used to authenticate state-changing operations (CWE-306).
-/// Credentials are read from configuration/environment (Admin:Username /
-/// Admin:Password) and are never hard-coded.
+/// Authenticates the administrator account used for state-changing operations.
 /// </summary>
+/// <remarks>Credentials are read from the <c>Admin:Username</c> and <c>Admin:Password</c> configuration values.</remarks>
 public class LoginModel : PageModel
 {
     private readonly IConfiguration _configuration;
 
+    /// <summary>
+    /// Initializes an administrator login page model.
+    /// </summary>
+    /// <param name="configuration">Configuration containing the administrator credentials.</param>
     public LoginModel(IConfiguration configuration)
     {
         _configuration = configuration;
     }
 
+    /// <summary>
+    /// Gets or sets the submitted administrator user name.
+    /// </summary>
     [BindProperty]
     public string? Username { get; set; }
 
+    /// <summary>
+    /// Gets or sets the submitted administrator password.
+    /// </summary>
     [BindProperty]
     public string? Password { get; set; }
 
+    /// <summary>
+    /// Gets or sets the local URL to return to after successful authentication.
+    /// </summary>
     [BindProperty(SupportsGet = true)]
     public string? ReturnUrl { get; set; }
 
+    /// <summary>
+    /// Gets or sets the user-facing authentication or configuration error.
+    /// </summary>
     public string? ErrorMessage { get; set; }
 
+    /// <summary>
+    /// Displays the login page.
+    /// </summary>
     public void OnGet()
     {
     }
 
+    /// <summary>
+    /// Validates configured administrator credentials and creates an authentication cookie.
+    /// </summary>
+    /// <returns>The login page on failure, the local return URL when valid, or the gallery after successful login.</returns>
     public async Task<IActionResult> OnPostAsync()
     {
         var adminUser = _configuration["Admin:Username"] ?? "admin";

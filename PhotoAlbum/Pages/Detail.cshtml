@@ -17,14 +17,14 @@ else
     <div class="photo-detail-container">
         <!-- Header with back button -->
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <a asp-page="/Index" class="btn btn-outline-secondary">
+            <a asp-page="/Index" asp-route-albumId="@Model.AlbumId" class="btn btn-outline-secondary">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
                 </svg>
                 Back to Gallery
             </a>
 
-            <form method="post" asp-page-handler="Delete" asp-route-id="@Model.Photo.Id"
+            <form method="post" asp-page-handler="Delete" asp-route-id="@Model.Photo.Id" asp-route-albumId="@Model.AlbumId"
                   onsubmit="return confirm('Are you sure you want to delete this photo?');">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-danger">
@@ -61,7 +61,7 @@ else
                 <div class="d-flex justify-content-between mt-3">
                     @if (Model.PreviousPhotoId.HasValue)
                     {
-                        <a asp-page="/Detail" asp-route-id="@Model.PreviousPhotoId" class="btn btn-outline-primary">
+                        <a asp-page="/Detail" asp-route-id="@Model.PreviousPhotoId" asp-route-albumId="@Model.AlbumId" class="btn btn-outline-primary">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16">
                                 <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
                             </svg>
@@ -75,7 +75,7 @@ else
 
                     @if (Model.NextPhotoId.HasValue)
                     {
-                        <a asp-page="/Detail" asp-route-id="@Model.NextPhotoId" class="btn btn-outline-primary">
+                        <a asp-page="/Detail" asp-route-id="@Model.NextPhotoId" asp-route-albumId="@Model.AlbumId" class="btn btn-outline-primary">
                             Next Photo
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
                                 <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
@@ -95,6 +95,18 @@ else
                         <dl class="row mb-0">
                             <dt class="col-sm-5">Filename:</dt>
                             <dd class="col-sm-7 text-break">@Model.Photo.OriginalFileName</dd>
+
+                            <dt class="col-sm-5">Album:</dt>
+                            <dd class="col-sm-7">
+                                @if (Model.Photo.AlbumId.HasValue)
+                                {
+                                    <a asp-page="/Index" asp-route-albumId="@Model.Photo.AlbumId">Album @Model.Photo.AlbumId</a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Unassigned</span>
+                                }
+                            </dd>
 
                             <dt class="col-sm-5">Uploaded:</dt>
                             <dd class="col-sm-7">@Model.Photo.UploadedAt.ToLocalTime().ToString("MMM dd, yyyy")<br/>

@@ -6,18 +6,20 @@ using PhotoAlbum.Services;
 namespace PhotoAlbum.Pages;
 
 /// <summary>
-/// Page model for the main photo gallery page with upload functionality
+/// Displays the photo gallery and handles multi-file image uploads.
 /// </summary>
 public class IndexModel : PageModel
 {
+    private const string InvalidAlbumIdMessage = "Album ID must be a whole number between 1 and 2147483647.";
+
     private readonly IPhotoService _photoService;
     private readonly ILogger<IndexModel> _logger;
 
     /// <summary>
-    /// Initializes a new instance of the IndexModel
+    /// Initializes a gallery page model.
     /// </summary>
-    /// <param name="photoService">Service for photo operations</param>
-    /// <param name="logger">Logger for diagnostics</param>
+    /// <param name="photoService">The service used to query and upload photos.</param>
+    /// <param name="logger">The logger used for operational diagnostics.</param>
     public IndexModel(IPhotoService photoService, ILogger<IndexModel> logger)
     {
         _photoService = photoService;
@@ -25,36 +27,66 @@ public class IndexModel : PageModel
     }
 
     /// <summary>
-    /// List of photos to display in the gallery
+    /// Gets or sets the photos displayed in the gallery, ordered newest first.
     /// </summary>
     public List<Photo> Photos { get; set; } = new();
 
     /// <summary>
-    /// Handler for GET requests - loads all photos for display
+    /// Gets the album identifier used to filter the gallery, or <see langword="null"/> when all photos are shown.
     /// </summary>
-    public async Task OnGetAsync()
+    public int? AlbumId { get; private set; }
+
+    /// <summary>
+    /// Gets the validation message for an invalid album filter, or <see langword="null"/> when the filter is valid.
+    /// </summary>
+    public string? AlbumIdError { get; private set; }
+
+    /// <summary>
+    /// Loads all photos or the photos assigned to a requested album.
+    /// </summary>
+    /// <param name="albumId">The optional positive album identifier used to filter the gallery.</param>
+    /// <returns>The gallery page, with status 400 when the album identifier is invalid.</returns>
+    public async Task<IActionResult> OnGetAsync(int? albumId = null)
     {
+        if (!ModelState.IsValid || albumId <= 0)
+        {
+            AlbumIdError = InvalidAlbumIdMessage;
+            return new PageResult { StatusCode = StatusCodes.Status400BadRequest };
+        }
+
+        AlbumId = albumId;
+
         try
         {
-            Photos = await _photoService.GetAllPhotosAsync();
+            Photos = albumId.HasValue
+                ? await _photoService.GetPhotosByAlbumIdAsync(albumId.Value)
+                : await _photoService.GetAllPhotosAsync();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading photos");
             Photos = new List<Photo>();
         }
+
+        return Page();
     }
 
     /// <summary>
-    /// Handler for POST requests - uploads one or more photo files
+    /// Uploads one or more photo files, optionally assigning all of them to an album.
     /// </summary>
-    /// <param name="files">Collection of files to upload</param>
-    /// <returns>JSON result with upload status and details</returns>
-    public async Task<IActionResult> OnPostUploadAsync(List<IFormFile> files)
+    /// <param name="files">The files to validate and upload.</param>
+    /// <param name="albumId">The optional positive album identifier assigned to every successful upload.</param>
+    /// <returns>A JSON result separating successfully uploaded photos from failed uploads, or status 400 for invalid input.</returns>
+    public async Task<IActionResult> OnPostUploadAsync(List<IFormFile> files, int? albumId = null)
     {
         if (files == null || files.Count == 0)
         {
             return BadRequest(new { success = false, error = "No files provided" });
+        }
+
+        if (!ModelState.IsValid || albumId <= 0)
+        {
+            return BadRequest(new { success = false, error = InvalidAlbumIdMessage });
         }
 
         var uploadedPhotos = new List<object>();
@@ -62,7 +94,7 @@ public class IndexModel : PageModel
 
         foreach (var file in files)
         {
-            var result = await _photoService.UploadPhotoAsync(file);
+            var result = await _photoService.UploadPhotoAsync(file, albumId);
 
             if (result.Success)
             {
@@ -79,7 +111,8 @@ public class IndexModel : PageModel
                         uploadedAt = uploadedPhoto.UploadedAt,
                         fileSize = uploadedPhoto.FileSize,
                         width = uploadedPhoto.Width,
-                        height = uploadedPhoto.Height
+                        height = uploadedPhoto.Height,
+                        albumId = uploadedPhoto.AlbumId
                     });
                 }
             }

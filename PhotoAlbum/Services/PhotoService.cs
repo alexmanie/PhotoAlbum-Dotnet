@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Formats;
 namespace PhotoAlbum.Services;
 
 /// <summary>
-/// Service for photo operations including upload, retrieval, and deletion
+/// Stores uploaded image files on disk while persisting and querying their metadata.
 /// </summary>
 public class PhotoService : IPhotoService
 {
@@ -22,6 +22,12 @@ public class PhotoService : IPhotoService
     private static readonly HashSet<string> _allowedImageExtensions =
         new(StringComparer.OrdinalIgnoreCase) { "jpg", "jpeg", "png", "gif", "webp" };
 
+    /// <summary>
+    /// Initializes a photo service from its persistence, upload, and logging dependencies.
+    /// </summary>
+    /// <param name="context">The context used to persist photo metadata.</param>
+    /// <param name="configuration">Configuration containing file upload limits, formats, and storage path.</param>
+    /// <param name="logger">The logger used for operational diagnostics.</param>
     public PhotoService(
         PhotoAlbumContext context,
         IConfiguration configuration,
@@ -37,9 +43,7 @@ public class PhotoService : IPhotoService
             ?? new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
     }
 
-    /// <summary>
-    /// Get all photos ordered by upload date (newest first)
-    /// </summary>
+    /// <inheritdoc/>
     public async Task<List<Photo>> GetAllPhotosAsync()
     {
         try
@@ -55,9 +59,7 @@ public class PhotoService : IPhotoService
         }
     }
 
-    /// <summary>
-    /// Get a specific photo by ID
-    /// </summary>
+    /// <inheritdoc/>
     public async Task<Photo?> GetPhotoByIdAsync(int id)
     {
         try
@@ -71,10 +73,8 @@ public class PhotoService : IPhotoService
         }
     }
 
-    /// <summary>
-    /// Upload a photo file
-    /// </summary>
-    public async Task<UploadResult> UploadPhotoAsync(IFormFile file)
+    /// <inheritdoc/>
+    public async Task<UploadResult> UploadPhotoAsync(IFormFile file, int? albumId = null)
     {
         var result = new UploadResult
         {
@@ -176,7 +176,8 @@ public class PhotoService : IPhotoService
                 MimeType = imageFormat.DefaultMimeType,
                 UploadedAt = DateTime.UtcNow,
                 Width = width,
-                Height = height
+                Height = height,
+                AlbumId = albumId
             };
 
             // Save to database
@@ -221,9 +222,7 @@ public class PhotoService : IPhotoService
         return result;
     }
 
-    /// <summary>
-    /// Delete a photo by ID
-    /// </summary>
+    /// <inheritdoc/>
     public async Task<bool> DeletePhotoAsync(int id)
     {
         try
@@ -264,9 +263,7 @@ public class PhotoService : IPhotoService
         }
     }
 
-    /// <summary>
-    /// Delete all photos
-    /// </summary>
+    /// <inheritdoc/>
     public async Task DeleteAllAsync()
     {
         try
@@ -301,9 +298,7 @@ public class PhotoService : IPhotoService
         }
     }
 
-    /// <summary>
-    /// Update photo dimensions
-    /// </summary>
+    /// <inheritdoc/>
     public async Task<bool> UpdatePhotoAsync(Photo photo)
     {
         try
@@ -326,6 +321,23 @@ public class PhotoService : IPhotoService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating photo with ID {PhotoId}", photo.Id);
+            throw;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<List<Photo>> GetPhotosByAlbumIdAsync(int albumId)
+    {
+        try
+        {
+            return await _context.Photos
+                .Where(p => p.AlbumId == albumId)
+                .OrderByDescending(p => p.UploadedAt)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving photos for album {AlbumId}", albumId);
             throw;
         }
     }

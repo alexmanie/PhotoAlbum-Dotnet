@@ -3,46 +3,58 @@ using PhotoAlbum.Models;
 namespace PhotoAlbum.Services;
 
 /// <summary>
-/// Service interface for photo operations
+/// Defines storage and retrieval operations for uploaded photos and their metadata.
 /// </summary>
 public interface IPhotoService
 {
     /// <summary>
-    /// Get all photos ordered by upload date (newest first)
+    /// Retrieves all photos in descending upload-time order.
     /// </summary>
-    /// <returns>List of photos</returns>
+    /// <returns>A list containing all persisted photos, with the newest photo first.</returns>
     Task<List<Photo>> GetAllPhotosAsync();
 
     /// <summary>
-    /// Get a specific photo by ID
+    /// Retrieves a photo by its database identifier.
     /// </summary>
-    /// <param name="id">Photo ID</param>
-    /// <returns>Photo if found, null otherwise</returns>
+    /// <param name="id">The database identifier of the photo.</param>
+    /// <returns>The matching photo, or <see langword="null"/> when no photo has the identifier.</returns>
     Task<Photo?> GetPhotoByIdAsync(int id);
 
     /// <summary>
-    /// Upload a photo file
+    /// Validates and stores an uploaded raster image and persists its metadata.
     /// </summary>
-    /// <param name="file">The uploaded file</param>
-    /// <returns>Upload result with success status and photo details or error message</returns>
-    Task<UploadResult> UploadPhotoAsync(IFormFile file);
+    /// <param name="file">The uploaded file whose content is inspected to determine its image format.</param>
+    /// <param name="albumId">The album identifier to assign, or <see langword="null"/> to leave the photo unassigned.</param>
+    /// <returns>An outcome containing the persisted photo identifier on success or a user-facing error on failure.</returns>
+    /// <remarks>Supported formats and the maximum file size are controlled by application configuration.</remarks>
+    Task<UploadResult> UploadPhotoAsync(IFormFile file, int? albumId = null);
 
     /// <summary>
-    /// Delete a photo by ID
+    /// Deletes a photo's stored file and persisted metadata.
     /// </summary>
-    /// <param name="id">Photo ID</param>
-    /// <returns>True if deleted successfully, false if not found</returns>
+    /// <param name="id">The database identifier of the photo to delete.</param>
+    /// <returns><see langword="true"/> when the photo existed and its metadata was deleted; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Metadata deletion continues when deletion of the physical file fails.</remarks>
     Task<bool> DeletePhotoAsync(int id);
 
     /// <summary>
-    /// Delete all photos
+    /// Deletes all persisted photo metadata and attempts to delete every corresponding stored file.
     /// </summary>
+    /// <remarks>Failure to delete an individual physical file does not stop metadata deletion.</remarks>
     Task DeleteAllAsync();
 
     /// <summary>
-    /// Update photo details
+    /// Replaces the stored width and height for an existing photo.
     /// </summary>
-    /// <param name="photo">Photo object with updated details</param>
-    /// <returns>True if updated successfully, false if not found</returns>
+    /// <param name="photo">A photo carrying the target identifier and replacement dimensions.</param>
+    /// <returns><see langword="true"/> when the photo existed and was updated; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>File metadata, upload time, and album assignment are not changed.</remarks>
     Task<bool> UpdatePhotoAsync(Photo photo);
+
+    /// <summary>
+    /// Retrieves the photos assigned to an album in descending upload-time order.
+    /// </summary>
+    /// <param name="albumId">The album identifier to match.</param>
+    /// <returns>The album's photos with the newest first, or an empty list when none match.</returns>
+    Task<List<Photo>> GetPhotosByAlbumIdAsync(int albumId);
 }
